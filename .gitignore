@@ -1,0 +1,17 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/dry-run/
+contracts/.gnosis/
+
+web/.next/
+web/out/
+web/build/
+web/.vercel/
+
+*.log
+.DS_Store
