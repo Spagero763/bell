@@ -15,3 +15,7 @@ web/.vercel/
 
 *.log
 .DS_Store
+
+web/AGENTS.md
+web/CLAUDE.md
+web/README.md
