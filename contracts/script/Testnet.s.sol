@@ -17,7 +17,7 @@ contract DeployTestnet is Deploy {
         uint256 pk = vm.envUint("PRIVATE_KEY");
         address me = vm.addr(pk);
         int256 price = int256(vm.envOr("PRICE", uint256(320e8)));
-        int256 b = int256(vm.envOr("B", uint256(1e18)));
+        int256 b = int256(vm.envOr("B", uint256(0.2e18)));
         int256 step = int256(vm.envOr("STEP", uint256(0.005e18)));
 
         vm.startBroadcast(pk);
@@ -29,7 +29,8 @@ contract DeployTestnet is Deploy {
         clock.setHolidays(marketHolidays(), true);
 
         GapMarket market = new GapMarket(address(usdc), address(clock));
-        ImpliedOpenFeed wrapped = new ImpliedOpenFeed(address(feed), address(clock), address(market), me);
+        ImpliedOpenFeed wrapped =
+            new ImpliedOpenFeed(address(feed), address(clock), address(market), me, 1e6, 1000);
 
         // Two prints bracketing the close, so the window can be anchored.
         uint64 closedAt = uint64(clock.lastClose(block.timestamp));

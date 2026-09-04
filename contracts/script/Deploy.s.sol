@@ -21,7 +21,14 @@ contract Deploy is Script {
         clock.setHolidays(marketHolidays(), true);
 
         GapMarket market = new GapMarket(USDC, address(clock));
-        ImpliedOpenFeed wrapped = new ImpliedOpenFeed(feed, address(clock), address(market), owner);
+        ImpliedOpenFeed wrapped = new ImpliedOpenFeed(
+            feed,
+            address(clock),
+            address(market),
+            owner,
+            vm.envOr("MIN_DEPTH", uint256(1e6)),
+            vm.envOr("MAX_DEVIATION_BPS", uint256(1000))
+        );
 
         vm.stopBroadcast();
 

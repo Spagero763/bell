@@ -19,15 +19,28 @@ contract ImpliedOpenFeed is IAggregatorV3, Ownable {
     MarketClock public immutable clock;
     GapMarket public immutable market;
 
-    uint256 public minDepth = 250e6;
-    uint256 public maxDeviationBps = 1000;
+    /// How much a book must have taken in before anyone should read its price, and how
+    /// far that price may sit from the last real print. Both are set at deploy because
+    /// the right numbers depend entirely on how deep the book is funded, and both should
+    /// go up a long way before anything meaningful borrows against this.
+    uint256 public minDepth;
+    uint256 public maxDeviationBps;
 
     event GuardsSet(uint256 minDepth, uint256 maxDeviationBps);
 
-    constructor(address underlying_, address clock_, address market_, address owner_) {
+    constructor(
+        address underlying_,
+        address clock_,
+        address market_,
+        address owner_,
+        uint256 minDepth_,
+        uint256 maxDeviationBps_
+    ) {
         underlying = IAggregatorV3(underlying_);
         clock = MarketClock(clock_);
         market = GapMarket(market_);
+        minDepth = minDepth_;
+        maxDeviationBps = maxDeviationBps_;
         _initializeOwner(owner_);
     }
 

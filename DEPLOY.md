@@ -10,23 +10,30 @@ AAPLc and no equity feed, so a staging deploy has to stand up a feed we write ou
 That is fine for rehearsing the commands and clicking through the interface. It is not a
 demo, because the whole point is that it reads the real frozen Coinbase feed.
 
-**Base mainnet is where this has to end up**, and it is cheap. Gas for the three contracts
-is cents. The only real cost is the LMSR subsidy, and you choose it:
+**Base mainnet is where this has to end up**, and it is small money. Gas for the three
+contracts is cents. Everything else scales off one number, `B`, the LMSR depth:
 
-| `B` | Subsidy you post |
-|---|---|
-| `0.25e18` | $0.76 |
-| `0.5e18` | $1.52 |
-| `1e18` (default) | **$3.04** |
-| `2e18` | $6.09 |
-| `20e18` | $60.89 |
+| `B` | Subsidy you post | A sensible trade | costs about |
+|---|---|---|---|
+| `0.05e18` | **$0.15** | 0.025 shares | under a cent |
+| `0.1e18` | $0.30 | 0.05 shares | under a cent |
+| `0.2e18` (default) | **$0.61** | 0.1 shares | ~$0.006 |
+| `1e18` | $3.04 | 0.5 shares | ~$0.03 |
+| `20e18` | $60.89 | 10 shares | ~$0.90 |
 
 The subsidy is not a fee. It is the most the book can lose, posted up front, which is what
-lets LMSR quote both sides without a counterparty. On a balanced book you get most of it
-back. Three dollars is plenty for a demo; a deeper book just means each trade moves the
-distribution less.
+lets LMSR quote both sides with nobody on the other end. On a balanced book most of it comes
+back.
 
-Rehearse on Sepolia, then do the real one on mainnet for a few dollars.
+Trade size scales off `B` too, and that matters more than the subsidy does. Buying many
+multiples of `B` pins a bucket at 100% in one go and costs far more than the subsidy: 25
+shares against `b=1e18` costs **$22**. The interface now sizes trades at about `b/2` by
+default and warns you past four times depth, so this is handled, but it is the thing to
+watch if you type a number in by hand.
+
+At the default you can deploy, open a session and trade for **well under a dollar**.
+
+Rehearse on Sepolia, then do the real one on mainnet for pocket change.
 
 ---
 
@@ -60,7 +67,7 @@ forge script script/Testnet.s.sol:SettleTestnet \
 
 ## The real one, on Base mainnet
 
-Your key needs a little ETH for gas and about **3 USDC** at the default depth.
+Your key needs a little ETH for gas and about **1 USDC** at the default depth.
 
 ### 1. Deploy
 

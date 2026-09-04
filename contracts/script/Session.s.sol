@@ -48,7 +48,7 @@ contract OpenSession is RoundFinder {
     function run() external {
         MarketClock clock = MarketClock(vm.envAddress("CLOCK"));
         GapMarket market = GapMarket(vm.envAddress("MARKET"));
-        int256 b = int256(vm.envOr("B", uint256(1e18)));
+        int256 b = int256(vm.envOr("B", uint256(0.2e18)));
         int256 step = int256(vm.envOr("STEP", uint256(0.005e18)));
 
         (uint64 closedAt, uint64 opensAt) = clock.currentWindow();

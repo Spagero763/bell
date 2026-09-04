@@ -33,7 +33,7 @@ contract ImpliedOpenFeedTest is Test {
         usdc = new MockUSDC();
         clock = new MarketClock(address(feed), OWNER);
         market = new GapMarket(address(usdc), address(clock));
-        wrapped = new ImpliedOpenFeed(address(feed), address(clock), address(market), OWNER);
+        wrapped = new ImpliedOpenFeed(address(feed), address(clock), address(market), OWNER, 250e6, 1000);
 
         (, uint256 fridayClose) = clock.sessionBounds(FRI);
         (uint256 mondayOpen,) = clock.sessionBounds(MON);

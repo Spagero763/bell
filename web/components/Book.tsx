@@ -32,7 +32,8 @@ function Shell({title, children}: {title: string; children: React.ReactNode}) {
 export default function Book() {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [bucket, setBucket] = useState(CENTER);
-  const [shares, setShares] = useState("25");
+  const [shares, setShares] = useState("");
+  const [edited, setEdited] = useState(false);
   const {address, isConnected} = useAccount();
   const {connect, connectors} = useConnect();
   const {writeContract, data: hash, isPending, reset} = useWriteContract();
@@ -71,10 +72,25 @@ export default function Book() {
     query: {enabled: Boolean(market) && Boolean(session?.closedAt), refetchInterval: 12000},
   });
 
+  // In LMSR the meaningful trade size scales with b: around b/2 shifts a bucket by a few
+  // points, while many multiples of b pin it at one and cost far more than the subsidy.
+  useEffect(() => {
+    if (edited || !session?.b) return;
+    const suggested = Number(formatUnits(session.b / 2n, 18));
+    if (suggested > 0) setShares(String(Number(suggested.toPrecision(2))));
+  }, [session, edited]);
+
   const size = useMemo(() => {
     const n = Number(shares);
-    return Number.isFinite(n) && n > 0 ? parseUnits(shares, 18) : 0n;
+    if (!Number.isFinite(n) || n <= 0) return 0n;
+    try {
+      return parseUnits(shares, 18);
+    } catch {
+      return 0n;
+    }
   }, [shares]);
+
+  const depthRatio = session?.b && size > 0n ? Number(size) / Number(session.b) : 0;
 
   const {data: cost} = useReadContract({
     address: market,
@@ -223,7 +239,10 @@ export default function Book() {
           <label className="text-[10px] uppercase tracking-[0.2em] text-faint">Shares</label>
           <input
             value={shares}
-            onChange={(e) => setShares(e.target.value.replace(/[^0-9.]/g, ""))}
+            onChange={(e) => {
+              setEdited(true);
+              setShares(e.target.value.replace(/[^0-9.]/g, ""));
+            }}
             inputMode="decimal"
             className="tnum mt-2 w-full rounded-md border border-line bg-raised px-3 py-2 font-mono text-lg text-ink outline-none focus:border-[#2b333d]"
           />
@@ -237,6 +256,12 @@ export default function Book() {
               "each share pays one dollar if the open lands here"
             )}
           </div>
+          {depthRatio > 4 && (
+            <div className="mt-1.5 text-[12px] text-amber">
+              That is {depthRatio.toFixed(0)}x the book&apos;s depth. It will pin this bucket at
+              once and cost far more than a smaller trade.
+            </div>
+          )}
         </div>
 
         <div>
