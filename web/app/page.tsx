@@ -1,5 +1,6 @@
 import Pulse from "@/components/Pulse";
 import Evidence from "@/components/Evidence";
+import Book from "@/components/Book";
 import Mechanism from "@/components/Mechanism";
 import {DEPLOYMENT, TICKERS} from "@/lib/chain";
 
@@ -41,6 +42,8 @@ export default function Home() {
 
         <Pulse />
       </section>
+
+      <Book />
 
       <Evidence />
 
