@@ -31,7 +31,10 @@ contract MarketClock is Ownable {
     IAggregatorV3 public immutable feed;
     uint8 public immutable feedDecimals;
 
-    uint256 public haltTolerance = 90 minutes;
+    /// These feeds publish on deviation, not on a useful heartbeat, so a quiet stretch
+    /// inside a live session is normal. Observed silences run to nearly three hours on a
+    /// calm day, hence the wide default; tighten it per asset once its cadence is known.
+    uint256 public haltTolerance = 4 hours;
     mapping(uint256 => bool) public holiday;
     mapping(uint64 => Window) internal _windows;
 

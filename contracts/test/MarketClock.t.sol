@@ -83,11 +83,26 @@ contract MarketClockTest is Test {
         vm.warp(openTs + 30 minutes);
         assertEq(uint8(mocked.state()), uint8(MarketClock.State.Open));
 
-        vm.warp(openTs + 3 hours);
+        vm.prank(OWNER);
+        mocked.setHaltTolerance(45 minutes);
+
+        vm.warp(openTs + 2 hours);
         assertEq(uint8(mocked.state()), uint8(MarketClock.State.Halted), "quiet feed inside session is a halt");
 
         mock.push(2, 301e8, block.timestamp);
         assertEq(uint8(mocked.state()), uint8(MarketClock.State.Open), "resumes when prints return");
+    }
+
+    /// A calm session with no deviation prints must not read as a halt.
+    function test_defaultToleranceSurvivesAQuietSession() public {
+        MockAggregator mock = new MockAggregator();
+        MarketClock mocked = new MarketClock(address(mock), OWNER);
+
+        (uint256 openTs,) = mocked.sessionBounds(MON);
+        mock.push(1, 300e8, openTs + 10 minutes);
+
+        vm.warp(openTs + 3 hours);
+        assertEq(uint8(mocked.state()), uint8(MarketClock.State.Open), "2h50m of silence is normal");
     }
 
     /// Walk the live feed, find a real blackout, and prove it settles with the
