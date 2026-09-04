@@ -60,10 +60,9 @@ contract OpenSession is RoundFinder {
         console.log("close round     ", closeRound);
         console.log("subsidy (USDC)  ", subsidy);
 
-        uint256 pk = vm.envUint("PRIVATE_KEY");
-        require(IERC20(USDC).balanceOf(vm.addr(pk)) >= subsidy, "fund the deployer with USDC");
+        require(IERC20(USDC).balanceOf(msg.sender) >= subsidy, "fund the sender with USDC");
 
-        vm.startBroadcast(pk);
+        vm.startBroadcast();
         IERC20(USDC).approve(address(market), subsidy);
         market.open(closeRound, b, step, subsidy);
         vm.stopBroadcast();
@@ -86,7 +85,7 @@ contract ResolveSession is RoundFinder {
         uint80 openRound = openRoundFor(clock.feed(), w.opensAt);
         console.log("open round      ", openRound);
 
-        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+        vm.startBroadcast();
         market.resolve(closedAt, openRound);
         vm.stopBroadcast();
 

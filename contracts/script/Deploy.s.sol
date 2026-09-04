@@ -12,10 +12,9 @@ contract Deploy is Script {
 
     function run() external virtual {
         address feed = vm.envOr("FEED", AAPL_FEED);
-        uint256 pk = vm.envUint("PRIVATE_KEY");
-        address owner = vm.addr(pk);
+        address owner = msg.sender;
 
-        vm.startBroadcast(pk);
+        vm.startBroadcast();
 
         MarketClock clock = new MarketClock(feed, owner);
         clock.setHolidays(marketHolidays(), true);

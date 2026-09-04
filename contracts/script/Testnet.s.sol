@@ -14,13 +14,12 @@ import {Deploy} from "./Deploy.s.sol";
 /// running right now. Costs nothing but testnet gas.
 contract DeployTestnet is Deploy {
     function run() external override {
-        uint256 pk = vm.envUint("PRIVATE_KEY");
-        address me = vm.addr(pk);
+        address me = msg.sender;
         int256 price = int256(vm.envOr("PRICE", uint256(320e8)));
         int256 b = int256(vm.envOr("B", uint256(0.2e18)));
         int256 step = int256(vm.envOr("STEP", uint256(0.005e18)));
 
-        vm.startBroadcast(pk);
+        vm.startBroadcast();
 
         RehearsalFeed feed = new RehearsalFeed("AAPL / USD (staging)", me);
         TestUSDC usdc = new TestUSDC();
@@ -79,7 +78,7 @@ contract SettleTestnet is Script {
 
         uint80 next = feed.latestRound() + 1;
 
-        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+        vm.startBroadcast();
         feed.push(next, openPrice, w.opensAt + 2 minutes);
         market.resolve(closedAt, next);
         vm.stopBroadcast();
