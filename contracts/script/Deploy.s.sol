@@ -10,7 +10,7 @@ contract Deploy is Script {
     address constant USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address constant AAPL_FEED = 0x787f13dEa48Db0897CbCDD985de77809D837F988;
 
-    function run() external {
+    function run() external virtual {
         address feed = vm.envOr("FEED", AAPL_FEED);
         uint256 pk = vm.envUint("PRIVATE_KEY");
         address owner = vm.addr(pk);
