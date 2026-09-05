@@ -66,3 +66,33 @@ contract Deploy is Script {
         d[19] = 21176;
     }
 }
+
+/// Finishes a deploy whose clock is already on chain. Reads the feed off the clock so
+/// the two cannot drift apart.
+contract DeployRest is Script {
+    address constant USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+
+    function run() external {
+        MarketClock clock = MarketClock(vm.envAddress("CLOCK"));
+        address feed = address(clock.feed());
+        address owner = msg.sender;
+
+        vm.startBroadcast();
+
+        GapMarket market = new GapMarket(USDC, address(clock));
+        ImpliedOpenFeed wrapped = new ImpliedOpenFeed(
+            feed,
+            address(clock),
+            address(market),
+            owner,
+            vm.envOr("MIN_DEPTH", uint256(1e6)),
+            vm.envOr("MAX_DEVIATION_BPS", uint256(1000))
+        );
+
+        vm.stopBroadcast();
+
+        console.log("clock      ", address(clock));
+        console.log("market     ", address(market));
+        console.log("impliedFeed", address(wrapped));
+    }
+}
