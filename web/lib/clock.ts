@@ -14,7 +14,7 @@ export type MarketState = "open" | "blackout" | "halted";
 function nthWeekday(year: number, month: number, n: number, weekday: number) {
   const first = Date.UTC(year, month - 1, 1) / 1000;
   const firstDow = dow(first);
-  let day = 1 + ((weekday - firstDow + 7) % 7) + (n - 1) * 7;
+  const day = 1 + ((weekday - firstDow + 7) % 7) + (n - 1) * 7;
   return Date.UTC(year, month - 1, day) / 1000;
 }
 

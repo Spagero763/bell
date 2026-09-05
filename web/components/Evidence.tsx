@@ -1,192 +1,219 @@
 "use client";
 
-import {useRef} from "react";
-import {motion, useInView} from "framer-motion";
-import {PRICES, VOLUMES, CLOSE_INDEX, BELL_INDEX, CLOSE_PRICE, FACTS, labelFor} from "@/lib/weekend";
+import {useEffect, useRef} from "react";
+import gsap from "gsap";
+import {ScrollTrigger} from "gsap/ScrollTrigger";
+import {PRICES, VOLUMES, CLOSE_INDEX, BELL_INDEX, CLOSE_PRICE, FACTS} from "@/lib/weekend";
 
-const W = 1000;
-const H = 320;
-const PAD = {top: 24, right: 16, bottom: 40, left: 52};
+const W = 1100;
+const H = 380;
+const PAD = {top: 40, right: 28, bottom: 54, left: 62};
 
-const lo = Math.min(...PRICES) - 0.6;
-const hi = Math.max(...PRICES) + 0.6;
-
+const lo = Math.min(...PRICES) - 0.9;
+const hi = Math.max(...PRICES) + 0.9;
 const x = (i: number) => PAD.left + (i / (PRICES.length - 1)) * (W - PAD.left - PAD.right);
 const y = (p: number) => PAD.top + (1 - (p - lo) / (hi - lo)) * (H - PAD.top - PAD.bottom);
 
-const path = PRICES.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p).toFixed(1)}`).join(
-  " ",
-);
-
+const linePath = PRICES.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p).toFixed(1)}`).join(" ");
 const maxVol = Math.max(...VOLUMES);
 
-function Stat({label, value, tone}: {label: string; value: string; tone?: "loss" | "amber"}) {
-  return (
-    <div className="border-l border-line pl-4">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-faint">{label}</div>
-      <div
-        className={`tnum mt-1.5 font-mono text-xl ${
-          tone === "loss" ? "text-loss" : tone === "amber" ? "text-amber" : "text-ink"
-        }`}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
 export default function Evidence() {
-  const ref = useRef<HTMLDivElement>(null);
-  const seen = useInView(ref, {once: true, margin: "-80px"});
+  const root = useRef<HTMLDivElement>(null);
+  const path = useRef<SVGPathElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      gsap.set(".ev-anno", {opacity: 1});
+      gsap.set(path.current, {strokeDashoffset: 0});
+      return;
+    }
+
+    gsap.registerPlugin(ScrollTrigger);
+    const ctx = gsap.context(() => {
+      const len = path.current?.getTotalLength() ?? 0;
+      gsap.set(path.current, {strokeDasharray: len, strokeDashoffset: len});
+      gsap.set(".ev-anno", {opacity: 0, y: 8});
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: ".ev-stage",
+          start: "top top",
+          end: "+=2200",
+          pin: true,
+          scrub: 0.7,
+          anticipatePin: 1,
+        },
+      });
+
+      tl.to(path.current, {strokeDashoffset: 0, ease: "none", duration: 10}, 0)
+        .to(".ev-anno-close", {opacity: 1, y: 0, duration: 0.7}, 1.4)
+        .to(".ev-shade", {opacity: 1, duration: 1}, 1.6)
+        .to(".ev-anno-band", {opacity: 1, y: 0, duration: 0.7}, 4)
+        .to(".ev-anno-bell", {opacity: 1, y: 0, duration: 0.7}, 7.6)
+        .to(".ev-rush", {opacity: 1, duration: 0.5}, 7.8)
+        .to(".ev-anno-gap", {opacity: 1, y: 0, duration: 0.7}, 8.9)
+        .to(".ev-stat", {opacity: 1, y: 0, stagger: 0.25, duration: 0.7}, 9.2);
+    }, root);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <section ref={ref} className="mx-auto w-full max-w-5xl px-6 py-24">
-      <motion.div
-        initial={{opacity: 0, y: 16}}
-        animate={seen ? {opacity: 1, y: 0} : {}}
-        transition={{duration: 0.6, ease: [0.16, 1, 0.3, 1]}}
-      >
-        <div className="text-[10px] uppercase tracking-[0.24em] text-faint">
-          Apple on Base · 28 to 31 August 2026
+    <section ref={root} className="relative" aria-label="What happened during the last blackout">
+      <div className="ev-stage flex min-h-screen flex-col justify-center py-20">
+        <div className="mx-auto w-full max-w-[1080px] px-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="display text-[28px] leading-tight text-ink sm:text-[38px]">
+              Five and a half million dollars,
+              <br />
+              at a price nobody could check.
+            </h2>
+            <div className="text-[10px] uppercase tracking-[0.22em] text-faint">
+              AAPLc · 28–31 Aug 2026
+            </div>
+          </div>
+
+          <div className="mt-10 overflow-hidden rounded-lg border border-line bg-panel">
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Price path">
+              <rect
+                className="ev-shade"
+                style={{opacity: 0}}
+                x={x(CLOSE_INDEX)}
+                y={PAD.top}
+                width={x(BELL_INDEX) - x(CLOSE_INDEX)}
+                height={H - PAD.top - PAD.bottom}
+                fill="rgba(232,163,61,0.055)"
+              />
+
+              {[lo + 1.2, (lo + hi) / 2, hi - 1.2].map((p) => (
+                <g key={p}>
+                  <line
+                    x1={PAD.left}
+                    x2={W - PAD.right}
+                    y1={y(p)}
+                    y2={y(p)}
+                    stroke="#12151b"
+                    strokeWidth="1"
+                  />
+                  <text x={PAD.left - 12} y={y(p) + 3.5} textAnchor="end" fill="#4e555f" fontSize="10">
+                    {p.toFixed(0)}
+                  </text>
+                </g>
+              ))}
+
+              <line
+                x1={PAD.left}
+                x2={W - PAD.right}
+                y1={y(CLOSE_PRICE)}
+                y2={y(CLOSE_PRICE)}
+                stroke="rgba(232,163,61,0.5)"
+                strokeWidth="1"
+                strokeDasharray="2 5"
+              />
+
+              {VOLUMES.map((v, i) => (
+                <rect
+                  key={i}
+                  className={i === BELL_INDEX ? "ev-rush" : undefined}
+                  style={i === BELL_INDEX ? {opacity: 0} : undefined}
+                  x={x(i) - 2.6}
+                  y={H - PAD.bottom - (v / maxVol) * 30}
+                  width="5.2"
+                  height={(v / maxVol) * 30}
+                  fill={i === BELL_INDEX ? "rgba(229,72,77,0.85)" : "rgba(255,255,255,0.07)"}
+                />
+              ))}
+
+              <line
+                x1={x(BELL_INDEX)}
+                x2={x(BELL_INDEX)}
+                y1={PAD.top}
+                y2={H - PAD.bottom}
+                stroke="rgba(229,72,77,0.4)"
+                strokeWidth="1"
+              />
+
+              <path
+                ref={path}
+                d={linePath}
+                fill="none"
+                stroke="#f2f4f7"
+                strokeWidth="1.9"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+
+              <g className="ev-anno ev-anno-close" style={{opacity: 0}}>
+                <text x={PAD.left + 8} y={y(CLOSE_PRICE) - 11} fill="#e8a33d" fontSize="11.5">
+                  the feed stops here, and holds ${CLOSE_PRICE.toFixed(2)} for 65 hours
+                </text>
+              </g>
+
+              <g className="ev-anno ev-anno-band" style={{opacity: 0}}>
+                <text x={x(34)} y={PAD.top + 26} textAnchor="middle" fill="#a2a9b4" fontSize="11.5">
+                  $5.6M changes hands inside a 1% band
+                </text>
+              </g>
+
+              <g className="ev-anno ev-anno-bell" style={{opacity: 0}}>
+                <text x={x(BELL_INDEX) - 10} y={PAD.top + 18} textAnchor="end" fill="#e5484d" fontSize="11.5">
+                  the bell
+                </text>
+              </g>
+
+              <g className="ev-anno ev-anno-gap" style={{opacity: 0}}>
+                <circle cx={x(72)} cy={y(PRICES[72])} r="3.4" fill="#e5484d" />
+                <text x={x(72) - 12} y={y(PRICES[72]) + 22} textAnchor="end" fill="#e5484d" fontSize="11.5">
+                  −2.0%
+                </text>
+              </g>
+
+              {[
+                [0, "Fri"],
+                [12, "Sat"],
+                [36, "Sun"],
+                [60, "Mon"],
+              ].map(([i, l]) => (
+                <text
+                  key={l as string}
+                  x={x(i as number)}
+                  y={H - 18}
+                  textAnchor="middle"
+                  fill="#4e555f"
+                  fontSize="10"
+                >
+                  {l as string}
+                </text>
+              ))}
+            </svg>
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4">
+            {[
+              [FACTS.swaps.toLocaleString(), "trades in the dark", ""],
+              [`$${(FACTS.volume / 1e6).toFixed(2)}M`, "volume", ""],
+              ["1.0%", "weekend range", "text-amber"],
+              ["−2.0%", "gap at the open", "text-loss"],
+            ].map(([v, l, tone]) => (
+              <div key={l} className="ev-stat bg-panel px-5 py-5" style={{opacity: 0}}>
+                <div className={`tnum font-mono text-[22px] ${tone || "text-ink"}`}>{v}</div>
+                <div className="mt-1.5 text-[11px] text-faint">{l}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <h2 className="mt-4 max-w-2xl text-2xl leading-snug text-ink sm:text-3xl">
-          Five and a half million dollars changed hands at a price nobody could check.
-        </h2>
-        <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted">
-          With the feed frozen on Friday&apos;s close and no way to redeem against real shares, the
-          weekend market had nothing to price against. It held a one percent band for sixty five
-          hours. Then the bell rang and Apple was worth two percent less.
+      </div>
+
+      <div className="mx-auto w-full max-w-[1080px] px-6 pb-28">
+        <p className="max-w-[62ch] text-[15px] leading-relaxed text-dim">
+          The busiest half hour of the entire weekend was the one immediately before trading
+          resumed: <span className="text-ink">{FACTS.rushSwaps.toLocaleString()} swaps</span> and{" "}
+          <span className="text-ink">${(FACTS.rushVolume / 1e6).toFixed(2)}M</span> in the thirty
+          minutes ahead of the bell, as arbitrage repriced a gap that had been knowable to nobody and
+          was about to be knowable to everyone. That is the leak. It reopens every Friday at four.
         </p>
-      </motion.div>
-
-      <motion.div
-        initial={{opacity: 0}}
-        animate={seen ? {opacity: 1} : {}}
-        transition={{duration: 0.5, delay: 0.15}}
-        className="mt-10 overflow-hidden rounded-xl border border-line bg-panel"
-      >
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img">
-          <rect
-            x={x(CLOSE_INDEX)}
-            y={PAD.top}
-            width={x(BELL_INDEX) - x(CLOSE_INDEX)}
-            height={H - PAD.top - PAD.bottom}
-            fill="rgba(242,169,59,0.05)"
-          />
-          <line
-            x1={x(CLOSE_INDEX)}
-            x2={x(CLOSE_INDEX)}
-            y1={PAD.top}
-            y2={H - PAD.bottom}
-            stroke="rgba(242,169,59,0.35)"
-            strokeWidth="1"
-          />
-          <line
-            x1={x(BELL_INDEX)}
-            x2={x(BELL_INDEX)}
-            y1={PAD.top}
-            y2={H - PAD.bottom}
-            stroke="rgba(242,104,95,0.5)"
-            strokeWidth="1"
-          />
-
-          <line
-            x1={PAD.left}
-            x2={W - PAD.right}
-            y1={y(CLOSE_PRICE)}
-            y2={y(CLOSE_PRICE)}
-            stroke="rgba(242,169,59,0.45)"
-            strokeWidth="1"
-            strokeDasharray="3 4"
-          />
-          <text x={PAD.left + 6} y={y(CLOSE_PRICE) - 7} className="fill-amber" fontSize="11">
-            what the feed still said: ${CLOSE_PRICE.toFixed(2)}
-          </text>
-
-          {VOLUMES.map((v, i) => (
-            <rect
-              key={i}
-              x={x(i) - 3}
-              y={H - PAD.bottom - (v / maxVol) * 26}
-              width="6"
-              height={(v / maxVol) * 26}
-              fill={i === BELL_INDEX ? "rgba(242,104,95,0.75)" : "rgba(255,255,255,0.09)"}
-            />
-          ))}
-
-          <motion.path
-            d={path}
-            fill="none"
-            stroke="#e9ebee"
-            strokeWidth="1.75"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            initial={{pathLength: 0}}
-            animate={seen ? {pathLength: 1} : {}}
-            transition={{duration: 2.4, ease: "easeInOut", delay: 0.3}}
-          />
-
-          <motion.g
-            initial={{opacity: 0}}
-            animate={seen ? {opacity: 1} : {}}
-            transition={{delay: 2.4, duration: 0.5}}
-          >
-            <circle cx={x(BELL_INDEX)} cy={y(PRICES[BELL_INDEX])} r="3.5" fill="#f2685f" />
-            <text
-              x={x(BELL_INDEX) - 8}
-              y={y(PRICES[BELL_INDEX]) - 14}
-              textAnchor="end"
-              className="fill-loss"
-              fontSize="11"
-            >
-              the bell
-            </text>
-          </motion.g>
-
-          {[0, 12, 36, 60, 76].map((i) => (
-            <text
-              key={i}
-              x={x(i)}
-              y={H - 14}
-              textAnchor={i === 0 ? "start" : i === 76 ? "end" : "middle"}
-              className="fill-[#5a616b]"
-              fontSize="10"
-            >
-              {labelFor(i).slice(0, 3)}
-            </text>
-          ))}
-          {[lo + 1, (lo + hi) / 2, hi - 1].map((p) => (
-            <text key={p} x={PAD.left - 10} y={y(p) + 3} textAnchor="end" className="fill-[#5a616b]" fontSize="10">
-              {p.toFixed(0)}
-            </text>
-          ))}
-        </svg>
-      </motion.div>
-
-      <motion.div
-        initial={{opacity: 0, y: 12}}
-        animate={seen ? {opacity: 1, y: 0} : {}}
-        transition={{duration: 0.5, delay: 0.35}}
-        className="mt-8 grid grid-cols-2 gap-6 sm:grid-cols-4"
-      >
-        <Stat label="Trades in the dark" value={FACTS.swaps.toLocaleString()} />
-        <Stat label="Volume" value={`$${(FACTS.volume / 1e6).toFixed(2)}M`} />
-        <Stat label="Weekend range" value="1.0%" tone="amber" />
-        <Stat label="Gap at the open" value="-2.0%" tone="loss" />
-      </motion.div>
-
-      <motion.p
-        initial={{opacity: 0}}
-        animate={seen ? {opacity: 1} : {}}
-        transition={{duration: 0.5, delay: 0.5}}
-        className="mt-8 max-w-2xl text-[15px] leading-relaxed text-muted"
-      >
-        The heaviest hour of the entire weekend was the last one before trading resumed:{" "}
-        <span className="text-ink">{FACTS.rushSwaps.toLocaleString()} swaps</span> and{" "}
-        <span className="text-ink">${(FACTS.rushVolume / 1e6).toFixed(2)}M</span> in the thirty
-        minutes ahead of the bell, as arbitrage repriced a gap that had been knowable to nobody and
-        was about to be knowable to everyone. That is the leak. It happens every weekend.
-      </motion.p>
+      </div>
     </section>
   );
 }
