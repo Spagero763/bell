@@ -102,9 +102,9 @@ Live on Base mainnet, running Apple.
 
 | | |
 |---|---|
-| MarketClock | `0x326babf614281B8630fd887377A3f3151f2Cb840` |
-| GapMarket | `0xE639e143344DaA3Bf116b3a527362032f737Bd8E` |
-| ImpliedOpenFeed | `0x3900bBdDbEc4ecc6CdB8505721e74d6f4ebd7A59` |
+| MarketClock | `0x8162b02A347F705Ee8d0d92fa297707436D39128` |
+| GapMarket | `0x07eB9fB97b0eF270d85750A72E3d7a316af9CC18` |
+| ImpliedOpenFeed | `0xce0B075d9B2BA71F4C8097e3A43e7D1240505173` |
 
 What they read.
 
