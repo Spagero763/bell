@@ -55,6 +55,10 @@ export const metadata: Metadata = {
     googleBot: {index: true, follow: true, "max-image-preview": "large", "max-snippet": -1},
   },
   category: "finance",
+  other: {
+    // Ownership verification for base.dev, which pairs the domain with the app.
+    "base:app_id": "693d00d2d19763ca26ddc253",
+  },
 };
 
 export const viewport: Viewport = {
