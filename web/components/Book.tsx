@@ -70,6 +70,7 @@ export default function Book({restricted = false}: {restricted?: boolean}) {
   const [bucket, setBucket] = useState(CENTER);
   const [typed, setTyped] = useState<string | null>(null);
   const [hover, setHover] = useState<number | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const {address, isConnected} = useAccount();
   const {connect, connectors} = useConnect();
@@ -286,12 +287,40 @@ export default function Book({restricted = false}: {restricted?: boolean}) {
               Not available in your region.
             </div>
           ) : !isConnected ? (
-            <button
-              onClick={() => connect({connector: connectors[0]})}
-              className="rounded-md bg-ink px-6 py-2.5 text-[14px] text-void transition-opacity hover:opacity-90"
-            >
-              Connect wallet
-            </button>
+            picking ? (
+              <div className="flex flex-col gap-1.5">
+                {connectors.map((c) => (
+                  <button
+                    key={c.uid}
+                    onClick={() => {
+                      setPicking(false);
+                      connect({connector: c});
+                    }}
+                    className="flex items-center gap-2.5 rounded-md border border-line bg-raised px-4 py-2.5 text-left text-[13px] text-dim transition-colors hover:border-[#2b333d] hover:text-ink"
+                  >
+                    <span
+                      className={`inline-block h-[6px] w-[6px] rounded-full ${
+                        c.id === "coinbaseWalletSDK" ? "bg-[#0052ff]" : "bg-faint"
+                      }`}
+                    />
+                    {c.id === "coinbaseWalletSDK" ? "Coinbase Wallet" : c.name}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPicking(false)}
+                  className="text-[11px] text-faint transition-colors hover:text-muted"
+                >
+                  cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setPicking(true)}
+                className="rounded-md bg-ink px-6 py-2.5 text-[14px] text-void transition-opacity hover:opacity-90"
+              >
+                Connect wallet
+              </button>
+            )
           ) : needsApproval ? (
             <button
               disabled={isPending || confirming}
