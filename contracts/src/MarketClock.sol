@@ -138,8 +138,13 @@ contract MarketClock is Ownable {
 
         uint256 closeUpdated;
         (, closePrice,, closeUpdated,) = feed.getRoundData(closeRound);
+        if (closeUpdated == 0 || closeUpdated > closedAt) revert BadCloseRound();
+
+        // The successor round proves nothing later slipped in before the close. During a
+        // blackout in progress there is no successor at all, which proves it more strongly:
+        // this is the latest print the feed has, so nothing can sit between it and the bell.
         (,,, uint256 afterClose,) = feed.getRoundData(closeRound + 1);
-        if (closeUpdated == 0 || closeUpdated > closedAt || afterClose <= closedAt) revert BadCloseRound();
+        if (afterClose != 0 && afterClose <= closedAt) revert BadCloseRound();
 
         w.closedAt = closedAt;
         w.opensAt = uint64(nextOpen(closedAt));

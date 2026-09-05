@@ -152,6 +152,43 @@ contract MarketClockTest is Test {
         console.log("open  price (8dp)", uint256(w.openPrice));
     }
 
+    /// The case the live weekend hit: the feed has gone quiet at the bell and published
+    /// nothing since, so the close print has no successor round to check against.
+    function test_anchorDuringABlackoutWithNoLaterRound() public {
+        MockAggregator mock = new MockAggregator();
+        MarketClock mocked = new MarketClock(address(mock), OWNER);
+
+        (, uint256 fridayClose) = mocked.sessionBounds(MON - 3);
+        mock.push(1, 320_08000000, fridayClose - 85);
+
+        vm.warp(fridayClose + 20 hours);
+        assertEq(uint8(mocked.state()), uint8(MarketClock.State.Blackout));
+
+        mocked.anchor(uint64(fridayClose), 1);
+
+        MarketClock.Window memory w = mocked.window(uint64(fridayClose));
+        assertEq(w.closePrice, 320_08000000, "anchors on the last print before the bell");
+        assertEq(w.opensAt - w.closedAt, 65 hours + 30 minutes);
+        assertFalse(w.settled);
+    }
+
+    /// A round with a successor that also predates the close is still not the close print.
+    function test_anchorStillRejectsAnEarlierRound() public {
+        MockAggregator mock = new MockAggregator();
+        MarketClock mocked = new MarketClock(address(mock), OWNER);
+
+        (, uint256 fridayClose) = mocked.sessionBounds(MON - 3);
+        mock.push(1, 319_00000000, fridayClose - 3 hours);
+        mock.push(2, 320_08000000, fridayClose - 85);
+
+        vm.warp(fridayClose + 20 hours);
+        vm.expectRevert(MarketClock.BadCloseRound.selector);
+        mocked.anchor(uint64(fridayClose), 1);
+
+        mocked.anchor(uint64(fridayClose), 2);
+        assertEq(mocked.window(uint64(fridayClose)).closePrice, 320_08000000);
+    }
+
     function test_anchorRejectsARoundThatIsNotTheClose() public {
         IAggregatorV3 feed = IAggregatorV3(AAPL_FEED);
         (uint80 latest,,,,) = feed.latestRoundData();
