@@ -1,8 +1,8 @@
 "use client";
 
 import {useEffect, useState} from "react";
-import {motion, AnimatePresence} from "framer-motion";
-import {formatET, splitDuration} from "@/lib/clock";
+import {motion} from "framer-motion";
+import {formatET, splitDuration, lastClose, nextOpen, scheduleState} from "@/lib/clock";
 
 export type PulseData = {
   now: number;
@@ -129,28 +129,26 @@ export default function Hero({initial}: {initial?: PulseData}) {
     };
   }, []);
 
-  const blackout = data?.schedule === "blackout";
-  const untilBell = data ? Math.max(0, data.opensAt - now) : 0;
-  const {hours, minutes, seconds} = splitDuration(untilBell);
+  // Session times come from the on-chain calendar mirrored in the client, so the
+  // countdown stands up even when the node is refusing to answer.
+  const closedAt = data?.closedAt ?? lastClose(now);
+  const opensAt = data?.opensAt ?? nextOpen(now);
+  const blackout = (data?.schedule ?? scheduleState(now)) === "blackout";
+  const blackoutHours = (opensAt - closedAt) / 3600;
+
+  const {hours, minutes, seconds} = splitDuration(Math.max(0, opensAt - now));
   const frozen = splitDuration(data ? Math.max(0, now - data.feed.updatedAt) : 0);
-  const elapsed = data ? Math.min(1, Math.max(0, (now - data.closedAt) / (data.opensAt - data.closedAt))) : 0;
+  const elapsed =
+    opensAt > closedAt ? Math.min(1, Math.max(0, (now - closedAt) / (opensAt - closedAt))) : 0;
+  const dash = "—";
 
   return (
     <section className="relative">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[620px] field" />
 
       <div className="relative mx-auto w-full max-w-[1080px] px-6 pt-20 sm:pt-28">
-        <AnimatePresence mode="wait">
-          {!data ? (
-            <motion.div
-              key="wait"
-              exit={{opacity: 0}}
-              className="flex h-[520px] items-center justify-center text-[13px] text-faint"
-            >
-              {failed ? "Base is not answering" : "Reading Base"}
-            </motion.div>
-          ) : (
-            <motion.div key="live" initial={{opacity: 0}} animate={{opacity: 1}}>
+        <div>
+          <div>
               <motion.div
                 initial={{opacity: 0, y: 12}}
                 animate={{opacity: 1, y: 0}}
@@ -173,7 +171,7 @@ export default function Hero({initial}: {initial?: PulseData}) {
                 transition={{delay: 0.08, duration: 0.8, ease: EASE}}
                 className="display mx-auto mt-8 max-w-[15ch] text-center text-[40px] leading-[1.04] text-ink sm:text-[64px]"
               >
-                {data.name} is still trading.
+                {data?.name ?? "Apple"} is still trading.
               </motion.h1>
 
               <motion.p
@@ -184,13 +182,13 @@ export default function Hero({initial}: {initial?: PulseData}) {
               >
                 {blackout ? (
                   <>
-                    The exchange shut {formatET(data.closedAt)} and its price feed stopped with it.
-                    The token did not. Bell prices the reopen in between.
+                    The exchange shut {formatET(closedAt)} and its price feed stopped with it. The
+                    token did not. Bell prices the reopen in between.
                   </>
                 ) : (
                   <>
-                    The feed is live until the bell at {formatET(data.closedAt)}. After that it holds
-                    this number until Monday, and Bell takes over.
+                    The feed is live until the bell at {formatET(closedAt)}. After that it holds
+                    this number until the next session, and Bell takes over.
                   </>
                 )}
               </motion.p>
@@ -217,11 +215,11 @@ export default function Hero({initial}: {initial?: PulseData}) {
                     className="mx-auto mt-14 max-w-[560px]"
                   >
                     <div className="flex items-baseline justify-between text-[10px] uppercase tracking-[0.2em] text-faint">
-                      <span>{formatET(data.closedAt)}</span>
+                      <span>{formatET(closedAt)}</span>
                       <span className="text-muted">
-                        {data.blackoutHours.toFixed(1)}h with no reference price
+                        {blackoutHours.toFixed(1)}h with no reference price
                       </span>
-                      <span>{formatET(data.opensAt)}</span>
+                      <span>{formatET(opensAt)}</span>
                     </div>
                     <div className="relative mt-3 h-[3px] w-full overflow-hidden rounded-full bg-line">
                       <motion.div
@@ -238,11 +236,13 @@ export default function Hero({initial}: {initial?: PulseData}) {
               <div className="mt-20 flex flex-col gap-8 sm:flex-row sm:gap-10">
                 <PriceCard
                   eyebrow="Chainlink reference"
-                  price={usd(data.feed.price)}
+                  price={data ? usd(data.feed.price) : dash}
                   tone={blackout ? "frozen" : "live"}
                   delay={0.55}
                   note={
-                    blackout ? (
+                    !data ? (
+                      <>{failed ? "Base is not answering" : "Reading Base"}</>
+                    ) : blackout ? (
                       <>
                         Frozen{" "}
                         <span className="tnum text-amber">
@@ -256,28 +256,32 @@ export default function Hero({initial}: {initial?: PulseData}) {
                   }
                 />
                 <PriceCard
-                  eyebrow={`${data.symbol} on Aerodrome`}
-                  price={usd(data.pool.price)}
+                  eyebrow={`${data?.symbol ?? "AAPLc"} on Aerodrome`}
+                  price={data ? usd(data.pool.price) : dash}
                   tone="live"
                   delay={0.63}
                   note={
-                    <>
-                      Trading now, {" "}
-                      <span className={data.driftBps >= 0 ? "text-signal" : "text-loss"}>
-                        {data.driftBps >= 0 ? "+" : ""}
-                        {data.driftBps.toFixed(1)} bps
-                      </span>{" "}
-                      from a price nobody can check.
-                    </>
+                    data ? (
+                      <>
+                        Trading now,{" "}
+                        <span className={data.driftBps >= 0 ? "text-signal" : "text-loss"}>
+                          {data.driftBps >= 0 ? "+" : ""}
+                          {data.driftBps.toFixed(1)} bps
+                        </span>{" "}
+                        from a price nobody can check.
+                      </>
+                    ) : (
+                      <>Reading the pool.</>
+                    )
                   }
                 />
                 <PriceCard
                   eyebrow="Bell implied open"
-                  price={data.market ? usd(data.market.impliedOpen) : "—"}
+                  price={data?.market ? usd(data.market.impliedOpen) : dash}
                   tone="implied"
                   delay={0.71}
                   note={
-                    data.market ? (
+                    data?.market ? (
                       <>
                         What the book says it reopens at, from{" "}
                         <span className="tnum text-ink">{usd(data.market.collected)}</span> of flow.
@@ -288,9 +292,8 @@ export default function Hero({initial}: {initial?: PulseData}) {
                   }
                 />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          </div>
+        </div>
       </div>
     </section>
   );

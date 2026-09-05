@@ -4,6 +4,7 @@ import Evidence from "@/components/Evidence";
 import Mechanism from "@/components/Mechanism";
 import {Nav, Footer} from "@/components/Chrome";
 import {getPulse} from "@/lib/pulse";
+import {getRegion} from "@/lib/region";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -11,7 +12,7 @@ export const revalidate = 0;
 export default async function Home() {
   // Rendered on the server so the live numbers are in the first paint and in the
   // markup a crawler sees, then kept current by the client.
-  const initial = await getPulse().catch(() => undefined);
+  const [initial, region] = await Promise.all([getPulse().catch(() => undefined), getRegion()]);
 
   return (
     <>
@@ -29,7 +30,7 @@ export default async function Home() {
         </div>
 
         <Evidence />
-        <Book />
+        <Book restricted={region.restricted} />
         <Mechanism />
       </main>
       <Footer />

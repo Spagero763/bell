@@ -3,7 +3,14 @@ import {base} from "viem/chains";
 
 export const client = createPublicClient({
   chain: base,
-  transport: http(process.env.NEXT_PUBLIC_RPC ?? "https://mainnet.base.org"),
+  // The public endpoint drops requests under load, so retry rather than render an
+  // empty page. Point NEXT_PUBLIC_RPC at a dedicated node to stop paying for this.
+  transport: http(process.env.NEXT_PUBLIC_RPC ?? "https://mainnet.base.org", {
+    retryCount: 3,
+    retryDelay: 250,
+    timeout: 8000,
+  }),
+  batch: {multicall: true},
 });
 
 export const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;

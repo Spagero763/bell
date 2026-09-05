@@ -21,11 +21,22 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 const usd = (n: number, dp = 2) =>
   n.toLocaleString("en-US", {style: "currency", currency: "USD", minimumFractionDigits: dp});
 
-function Frame({children}: {children: React.ReactNode}) {
+function Frame({restricted, children}: {restricted?: boolean; children: React.ReactNode}) {
   return (
     <section id="book" className="mx-auto w-full max-w-[1080px] px-6 pb-28">
       <div className="text-[10px] uppercase tracking-[0.26em] text-faint">The book</div>
-      <div className="mt-6 rounded-lg border border-line bg-panel">{children}</div>
+      <div className="mt-6 rounded-lg border border-line bg-panel">
+        {restricted && (
+          <div className="border-b border-line bg-raised px-8 py-4">
+            <p className="max-w-[70ch] text-[13px] leading-relaxed text-muted">
+              <span className="text-amber">Viewing only.</span> The equities behind this book are
+              issued to eligible users outside the United States, so Bell does not transact for US
+              visitors. Everything on this page stays readable.
+            </p>
+          </div>
+        )}
+        {children}
+      </div>
     </section>
   );
 }
@@ -46,15 +57,15 @@ function sizeHint(b: bigint): string {
   return half > 0 ? String(Number(half.toPrecision(2))) : "";
 }
 
-function Quiet({children}: {children: React.ReactNode}) {
+function Quiet({restricted, children}: {restricted?: boolean; children: React.ReactNode}) {
   return (
-    <Frame>
+    <Frame restricted={restricted}>
       <p className="max-w-[60ch] p-10 text-[15px] leading-relaxed text-dim">{children}</p>
     </Frame>
   );
 }
 
-export default function Book() {
+export default function Book({restricted = false}: {restricted?: boolean}) {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [bucket, setBucket] = useState(CENTER);
   const [typed, setTyped] = useState<string | null>(null);
@@ -114,17 +125,17 @@ export default function Book() {
     reset();
   }, [isSuccess, refetchSession, refetchPrices, refetchAllowance, reset]);
 
-  if (!isLive) return <Quiet>The contracts are not deployed yet.</Quiet>;
+  if (!isLive) return <Quiet restricted={restricted}>The contracts are not deployed yet.</Quiet>;
   if (!blackout)
     return (
-      <Quiet>
+      <Quiet restricted={restricted}>
         New York is open, so there is nothing to price. The book opens by itself at the closing bell
         and locks at the next one.
       </Quiet>
     );
   if (!hasSession)
     return (
-      <Quiet>
+      <Quiet restricted={restricted}>
         No session has been opened for this blackout yet. Anyone can start one by posting the LMSR
         subsidy, which is what bounds the book&apos;s worst case.
       </Quiet>
@@ -143,7 +154,7 @@ export default function Book() {
   const drift = impliedPx > 0 ? ((impliedPx - closePrice) / closePrice) * 100 : 0;
 
   return (
-    <Frame>
+    <Frame restricted={restricted}>
       <div className="flex flex-wrap items-end justify-between gap-8 border-b border-line p-8">
         <div>
           <div className="text-[10px] uppercase tracking-[0.22em] text-faint">Implied open</div>
@@ -245,10 +256,11 @@ export default function Book() {
           <input
             id="shares"
             value={shares}
+            disabled={restricted}
             onChange={(e) => setTyped(e.target.value.replace(/[^0-9.]/g, "").slice(0, 12))}
             inputMode="decimal"
             autoComplete="off"
-            className="tnum mt-3 w-full rounded-md border border-line bg-raised px-3.5 py-2.5 font-mono text-[17px] text-ink outline-none transition-colors focus:border-[#2b333d]"
+            className="tnum mt-3 w-full rounded-md border border-line bg-raised px-3.5 py-2.5 font-mono text-[17px] text-ink outline-none transition-colors focus:border-[#2b333d] disabled:opacity-40"
           />
           <div className="mt-1.5 text-[12px] text-faint">
             {costUsd > 0 ? (
@@ -269,7 +281,11 @@ export default function Book() {
         </div>
 
         <div className="flex flex-col items-stretch gap-2">
-          {!isConnected ? (
+          {restricted ? (
+            <div className="rounded-md border border-line bg-raised px-4 py-2.5 text-[12px] leading-snug text-muted">
+              Not available in your region.
+            </div>
+          ) : !isConnected ? (
             <button
               onClick={() => connect({connector: connectors[0]})}
               className="rounded-md bg-ink px-6 py-2.5 text-[14px] text-void transition-opacity hover:opacity-90"

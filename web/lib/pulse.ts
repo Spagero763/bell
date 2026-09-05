@@ -30,7 +30,28 @@ export type Pulse = {
   } | null;
 };
 
+// The public Base endpoint refuses a good share of requests, and a page that renders
+// prices only sometimes is worse than one that renders them a few seconds late. Hold
+// the last good reading and serve it while the node is unhappy.
+let cached: {at: number; value: Pulse} | null = null;
+const FRESH_MS = 8_000;
+const STALE_MS = 5 * 60_000;
+
 export async function getPulse(): Promise<Pulse> {
+  const nowMs = Date.now();
+  if (cached && nowMs - cached.at < FRESH_MS) return cached.value;
+
+  try {
+    const value = await readChain();
+    cached = {at: nowMs, value};
+    return value;
+  } catch (err) {
+    if (cached && nowMs - cached.at < STALE_MS) return cached.value;
+    throw err;
+  }
+}
+
+async function readChain(): Promise<Pulse> {
   const ticker = TICKERS[0];
   const now = Math.floor(Date.now() / 1000);
   const schedule = scheduleState(now);

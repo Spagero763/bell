@@ -126,12 +126,20 @@ export function Footer() {
           </div>
         </div>
 
-        <p className="mt-14 max-w-[80ch] text-[11px] leading-relaxed text-faint">
-          Bell does not issue tokenized stocks and is not affiliated with any issuer or exchange.
-          Tokenized equities referenced here are issued by Coinbase and available only to eligible
-          users outside the United States. The contracts are unaudited. Nothing here is investment
-          advice.
-        </p>
+        <div className="mt-14 space-y-3 text-[11px] leading-relaxed text-faint">
+          <p className="max-w-[80ch]">
+            <span className="text-muted">Availability.</span> The tokenized equities referenced here
+            are issued by Coinbase to eligible users outside the United States. Bell does not offer
+            or enable trading to US persons, and the book will not transact for visitors in the
+            United States. Nothing on this site is an offer or solicitation anywhere it would be
+            unlawful.
+          </p>
+          <p className="max-w-[80ch]">
+            Bell does not issue tokenized stocks and is not affiliated with any issuer or exchange.
+            The contracts are unaudited and carry total loss risk. Nothing here is investment,
+            legal or tax advice.
+          </p>
+        </div>
       </div>
     </footer>
   );
