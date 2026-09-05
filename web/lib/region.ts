@@ -13,12 +13,15 @@ export type Region = {
 export async function getRegion(): Promise<Region> {
   const h = await headers();
 
-  // Set by the platform edge. Absent in local development.
+  // The override comes first so the gate can be exercised from anywhere. Everything
+  // after it is set by the platform edge and cannot be forged by the caller; the
+  // client-supplied fallbacks only ever apply in local development, where no edge
+  // has stamped a country on the request.
   const country =
+    process.env.REGION_OVERRIDE ??
     h.get("x-vercel-ip-country") ??
     h.get("cf-ipcountry") ??
     h.get("x-country-code") ??
-    process.env.REGION_OVERRIDE ??
     null;
 
   return {
