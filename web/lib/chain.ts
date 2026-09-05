@@ -5,7 +5,9 @@ export const client = createPublicClient({
   chain: base,
   // The public endpoint drops requests under load, so retry rather than render an
   // empty page. Point NEXT_PUBLIC_RPC at a dedicated node to stop paying for this.
-  transport: http(process.env.NEXT_PUBLIC_RPC ?? "https://mainnet.base.org", {
+  // RPC_URL is server only, so a keyed endpoint never reaches the browser bundle.
+  // NEXT_PUBLIC_RPC is the fallback and is public by definition.
+  transport: http(process.env.RPC_URL ?? process.env.NEXT_PUBLIC_RPC ?? "https://mainnet.base.org", {
     retryCount: 3,
     retryDelay: 250,
     timeout: 8000,
