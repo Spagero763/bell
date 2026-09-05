@@ -73,7 +73,7 @@ export default function Book({restricted = false}: {restricted?: boolean}) {
   const [picking, setPicking] = useState(false);
 
   const {address, isConnected} = useAccount();
-  const {connect, connectors} = useConnect();
+  const {connect, connectors, error: connectError, isPending: connecting} = useConnect();
   const {disconnect} = useDisconnect();
   const {writeContract, data: hash, isPending, reset} = useWriteContract();
   const {isLoading: confirming, isSuccess} = useWaitForTransactionReceipt({hash});
@@ -293,8 +293,8 @@ export default function Book({restricted = false}: {restricted?: boolean}) {
                   <button
                     key={c.uid}
                     onClick={() => {
-                      setPicking(false);
                       connect({connector: c});
+                      setPicking(false);
                     }}
                     className="flex items-center gap-2.5 rounded-md border border-line bg-raised px-4 py-2.5 text-left text-[13px] text-dim transition-colors hover:border-[#2b333d] hover:text-ink"
                   >
@@ -312,14 +312,26 @@ export default function Book({restricted = false}: {restricted?: boolean}) {
                 >
                   cancel
                 </button>
+                {connectError && (
+                  <p className="max-w-[220px] text-[11px] leading-snug text-loss">
+                    {connectError.message.slice(0, 160)}
+                  </p>
+                )}
               </div>
             ) : (
-              <button
-                onClick={() => setPicking(true)}
-                className="rounded-md bg-ink px-6 py-2.5 text-[14px] text-void transition-opacity hover:opacity-90"
-              >
-                Connect wallet
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => setPicking(true)}
+                  className="rounded-md bg-ink px-6 py-2.5 text-[14px] text-void transition-opacity hover:opacity-90"
+                >
+                  {connecting ? "Opening wallet…" : "Connect wallet"}
+                </button>
+                {connectError && (
+                  <p className="max-w-[220px] text-[11px] leading-snug text-loss">
+                    {connectError.message.slice(0, 160)}
+                  </p>
+                )}
+              </div>
             )
           ) : needsApproval ? (
             <button
