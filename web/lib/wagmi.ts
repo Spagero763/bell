@@ -9,7 +9,9 @@ export const wagmiConfig = createConfig({
   connectors: [
     coinbaseWallet({
       appName: "Bell",
-      preference: "all",
+      // "all" lets someone pick a passkey based Base Account or an existing EOA,
+      // so no extension is required.
+      preference: {options: "all"},
     }),
     injected({shimDisconnect: true}),
   ],
